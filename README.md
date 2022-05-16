@@ -1,4 +1,4 @@
-# OneLoopBispectrum
+# One Loop Galaxy Bispectrum
 Computation of the one-loop bispectrum of galaxies in redshift space, using Mathematica. This is described in [Philcox+22](COMING SOON). The code contains a number of parts:
 1. [Kernels.nb](Kernels.nb) \& [KernelsFlat.nb](KernelsFlat.nb): Computation and simplification of the bispectrum kernels using Mathematica [cosmology-independent]. These are saved in the [```kernels```](kernels/) directory.
 2. *Mathematica:* Computation of the bispectrum templates, given the simplified kernels 
