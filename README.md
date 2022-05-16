@@ -10,3 +10,4 @@ The computed spectra can be interfaced with the tree-level bispectrum likelihood
 
 ### Authors
 - [Oliver Philcox](mailto:ohep2@cantab.ac.uk) (Princeton / IAS) 
+- Marko Simonovic (CERN)
