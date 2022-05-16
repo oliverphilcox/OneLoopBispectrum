@@ -2,13 +2,13 @@
 (* ::Package:: *)
 
 (* ::Text:: *)
-(*In this script, the one-loop bispectrum templates are computed using a given input power spectrum. This is designed to run on a HPC cluster and computes the templates for all biases simultaneously, but for a single angular component. *)
+(*In this script, the flattened (k1 = k2 + k3) one-loop bispectrum templates are computed using a given input power spectrum. This is designed to run on a HPC cluster and computes the templates for all biases simultaneously, but for a single angular component. *)
 (**)
-(*The script can be run via "./Spectra.wls N", where N is the angular index (between 1 and 47). If the index is not specified, the script will run in testing mode, using a small value of the FFTLog index for speed. If the script is *not* run in testing mode, it will compute templates only if they do not already exist in the output directory*)
+(*The script can be run via "./SpectraFlat.wls N", where N is the angular index (between 1 and 7). If the index is not specified, the script will run in testing mode, using a small value of the FFTLog index for speed. If the script is *not* run in testing mode, it will compute templates only if they do not already exist in the output directory*)
 
 
 (* Read mu index from command line, or take a fixed value for testing *)
-Check[muIndex=ToExpression[$ScriptCommandLine[[2]]];test=False;,muIndex=13;test=True;];
+Check[muIndex=ToExpression[$ScriptCommandLine[[2]]];test=False;,muIndex=3;test=True;];
 Print[ToString[StringForm["Angular index: ``",muIndex]]];
 
 
@@ -16,7 +16,7 @@ Print[ToString[StringForm["Angular index: ``",muIndex]]];
 (*Set-Up*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Options*)
 
 
@@ -75,7 +75,7 @@ kmaxPlot=0.5;
 Clear[x,y,k];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Load inputs*)
 
 
@@ -90,28 +90,27 @@ includeB321Iv2=True;
 includeB321II=True;
 includeB411=True;
 ,
-includeB211=Not[FileExistsQ[ToString[StringForm["``_b211_m``.wdx",string,muIndex]]]];
-includeB222=Not[FileExistsQ[ToString[StringForm["``_b222_nu``_m``.wdx",string,bias222,muIndex]]]];
-includeB321Iv1=Not[FileExistsQ[ToString[StringForm["``_b321I_nu``_m``.wdx",string,bias321Iv1,muIndex]]]];
-includeB321Iv2=Not[FileExistsQ[ToString[StringForm["``_b321I_nu``_m``.wdx",string,bias321Iv2,muIndex]]]];
-includeB321II=Not[FileExistsQ[ToString[StringForm["``_b321II_nu``_m``.wdx",string,bias321II,muIndex]]]];
-includeB411=Not[FileExistsQ[ToString[StringForm["``_b411_nu``_m``.wdx",string,bias411,muIndex]]]];
+includeB211=Not[FileExistsQ[ToString[StringForm["``-flat_b211_m``.wdx",string,muIndex]]]];
+includeB222=Not[FileExistsQ[ToString[StringForm["``-flat_b222_nu``_m``.wdx",string,bias222,muIndex]]]];
+includeB321Iv1=Not[FileExistsQ[ToString[StringForm["``-flat_b321I_nu``_m``.wdx",string,bias321Iv1,muIndex]]]];
+includeB321Iv2=Not[FileExistsQ[ToString[StringForm["``-flat_b321I_nu``_m``.wdx",string,bias321Iv2,muIndex]]]];
+includeB321II=Not[FileExistsQ[ToString[StringForm["``-flat_b321II_nu``_m``.wdx",string,bias321II,muIndex]]]];
+includeB411=Not[FileExistsQ[ToString[StringForm["``-flat_b411_nu``_m``.wdx",string,bias411,muIndex]]]];
 ];
+
 (* Define angular indices *)
 powsAng={};
 For[i=0,i<=12,i++,
-For[j=0,j<=10,j++,
-If[i+j>12,Continue[]];
-If[OddQ[i+j],Continue[]];
-powsAng=Join[powsAng,{{i,j}}]]];
+If[OddQ[i],Continue[]];
+powsAng=Join[powsAng,{{i,0}}]];
 \[Mu]index = powsAng[[muIndex,1]];
 \[Chi]index = powsAng[[muIndex,2]];
 Print[ToString[StringForm["Using \[Mu] index `` and \[Chi] index ``.",\[Mu]index,\[Chi]index]]];
+
 (* Get angular coefficients *)
 getCoeff[dat_]:=Module[{datLoc},
 datLoc=dat;
-If[\[Mu]index==0,datLoc=datLoc/.{\[Mu]->0}//Chop,datLoc=Coefficient[datLoc,\[Mu]^\[Mu]index]];
-If[\[Chi]index==0,datLoc=datLoc/.{\[Chi]->0}//Chop,datLoc=Coefficient[datLoc,\[Chi]^\[Chi]index]];
+If[\[Mu]index==0,datLoc=datLoc/.{\[Mu]->0},datLoc=Coefficient[datLoc,\[Mu]^\[Mu]index]];
 datLoc];
 
 Print["Computing B211: ",includeB211];
@@ -122,7 +121,7 @@ Print["Computing B321II: ",includeB321II];
 Print["Computing B411: ",includeB411];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Define triangles*)
 
 
@@ -134,6 +133,7 @@ result=Table[kmin Exp[(i-1) \[CapitalDelta]],{i,1,Nmax}];
 result
 ];
 knPlot=kBins[NmaxPlot,kminPlot,kmaxPlot];
+
 (* Define array of x, y *)
 xArr = Range[0.0,1.,0.025]^2;
 yArr = Range[0.0,1.,0.025]^2;
@@ -143,16 +143,14 @@ For[j=1,j<=Length[yArr],j++,
 x1=xArr[[i]];
 y1=yArr[[j]];
 (* NB omit flattened triangles *)
-If[(Abs[Sqrt[x1]-Sqrt[y1]]<1)&&(Sqrt[x1]+Sqrt[y1]>1)&&(y1>=x1),xy1=Join[xy1,{{x1,y1}}]]]];
+If[(Abs[Sqrt[x1]-Sqrt[y1]]<=1)&&(Sqrt[x1]+Sqrt[y1]==1)&&(y1>=x1),xy1=Join[xy1,{{x1,y1}}]]]];
 ntriag=Length[xy1]
 Print["Ntriag=",ntriag];
-(* Compute x, y arrays *)
-x1vec=Sort[DeleteDuplicatesBy[xy1[[All,1]],Round[#,10.^-12]&]];
-y1vec=Sort[DeleteDuplicatesBy[xy1[[All,2]],Round[#,10.^-12]&]];
-Print[ToString[StringForm["Nx = ``, Ny = ``",Length[x1vec],Length[y1vec]]]]
+(* Replace first value to avoid errors *)
+xy1[[1]]={N[10^-4],1};
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Kernel Definitions*)
 
 
@@ -192,23 +190,20 @@ Z3[q1_,q2_,q3_]:=K3[q1,q2,q3]+f \[Eta][q1+q2+q3]^2 Gn[3,{q1,q2,q3}]+(f mag[q1+q2
 Z3s[q1_,q2_,q3_]=Simplify[Sum[1/Length[perm123]Z3[perm123[[i,1]],perm123[[i,2]],perm123[[i,3]]],{i,1,Length[perm123]}]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Angular Substitutions*)
 
 
 (* ::Code::Initialization::Plain:: *)
 SetDirectory[indir];
-muTable=Import["muTensors_n6.wdx"];
+muTable=Import["muTensorsFlat_n6.wdx"];
 muSubs={};
 For[n=6,n>=1,n--,
-muSubs=Join[muSubs,{\[Eta][q]^n-> Sum[ang1[k1,q]^i1 ang1[k2,q]^i2 muTable[[n,i1+1,i2+1]],{i1,0,n},{i2,0,n}]}]];
-muSubs=muSubs/.{-1+\[Nu]12^2->-\[Rho]12^2};
+muSubs=Join[muSubs,{\[Eta][q]^n-> Sum[ang1[k1,q]^i1  muTable[[n,i1+1]],{i1,0,n}]}]];
 muSubsExt={\[Eta][k1]->\[Mu]1,\[Eta][k2]->\[Mu]2,\[Eta][k3]->\[Mu]3,\[Eta][-k1-k2]->\[Mu]3,\[Eta][k1+k2]->-\[Mu]3,\[Eta][k2+k3]->-\[Mu]1,\[Eta][k1+k3]->-\[Mu]2,\[Eta][k1-q]:> k1/k1mq \[Mu]1-q/k1mq \[Eta][q],\[Eta][k1+q]:> k1/k1pq \[Mu]1+q/k1pq \[Eta][q],\[Eta][-k1-q]:> -(k1/k1pq)\[Mu]1-q/k1pq \[Eta][q],\[Eta][k2-q]:> k2/k2mq \[Mu]2-q/k2mq \[Eta][q],\[Eta][-k2+q]:> -(k2/k2mq)\[Mu]2+q/k2mq \[Eta][q],\[Eta][k2+q]:> k2/k2pq \[Mu]2+q/k2pq \[Eta][q],\[Eta][k3-q]:> k3/k3mq \[Mu]3-q/k3mq \[Eta][q],\[Eta][k3+q]:> k3/k3pq \[Mu]3+q/k3pq \[Eta][q],\[Eta][-k1-k2+q]:> k3/k3pq \[Mu]3+q/k3pq \[Eta][q],\[Eta][k1+k2+q]:>- (k3/k3mq)\[Mu]3+q/k3mq \[Eta][q],\[Eta][k1+k2-q]:>- (k3/k3pq)\[Mu]3-q/k3pq \[Eta][q]};
 
-muBasisTrans={\[Mu]1->\[Mu],\[Mu]2->\[Mu] \[Nu]12-\[Chi] \[Rho]12,\[Mu]3->-(\[Mu]+Sqrt[y](\[Mu] \[Nu]12-\[Chi] \[Rho]12))/Sqrt[x]};
 
-
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Load Tables*)
 
 
@@ -223,22 +218,20 @@ b2s={b2,g2,b1,f, b1 f, f^2};
 
 (* Compute B211 and correct mu coefficient *)
 If[includeB211,
-Print["Loading B211"];
 biasListB211=Union[Flatten[Table[b2s[[i]]b1s[[j]]b1s[[k]],{i,1,Length[b2s]},{j,1,Length[b1s]},{k,1,Length[b1s]}]]];
 Print[ToString[StringForm["`` contributions to B211",Length[biasListB211]]]];
 B211tmp[k1_,k2_,k3_,\[Mu]1_,\[Mu]2_,\[Mu]3_]=(2(Z1s[k1]Z1s[k2]Z2s[k1,k2]Plin[k1]Plin[k2]+Z1s[k1]Z1s[k3]Z2s[k1,k3]Plin[k1]Plin[k3]+Z1s[k2]Z1s[k3]Z2s[k2,k3]Plin[k2]Plin[k3])/.{al->alfm,be->befm})/.muSubsExt/.{mag[k1]->k1,mag[k2]->k2,mag[k3]->k3,mag[k1+k2]->k3,mag[k1+k3]->k2,mag[k2+k3]->k1}//Simplify;
-B211[k1_,k2_,k3_]=getCoeff[(B211tmp[k1,k2,k3,\[Mu]1,\[Mu]2,-(k1 \[Mu]1 + k2 \[Mu]2)/k3]/.{\[Mu]1->\[Mu],\[Mu]2->\[Mu] \[Nu]12-\[Chi] \[Rho]12})/.{\[Rho]12->Sqrt[1-\[Nu]12^2]}/.{\[Nu]12->(k3^2-k1^2-k2^2)/(2 k1 k2)}//Expand];
-];
+B211[k1_,k2_,k3_]=getCoeff[B211tmp[k1,k2,k3,\[Mu],-\[Mu],-\[Mu]]];];
 
 
 (* ::Code::Initialization::Plain:: *)
 (* B222 *)
+(* Load table and assert flattened angular structure *)
 If[includeB222,
-Print["Loading B222"];
 biasListB222init=Union[Flatten[Table[b2s[[i]]b2s[[j]]b2s[[k]],{i,1,Length[b2s]},{j,1,Length[b2s]},{k,1,Length[b2s]}]]];
 SetDirectory[indir];
-Tab222derivsinit=getCoeff[Import["tab222derivsMuChi.wdx"]];
-Tab222freq=Import["tab222freq.wdx"];
+Tab222derivsinit=getCoeff[Import["tab222derivs-flat.wdx"]/.{\[Mu]1->\[Mu],\[Mu]2->-\[Mu],\[Mu]3->-\[Mu]}];
+Tab222freq=Import["tab222freq-flat.wdx"];
 
 (* Remove any unneeded bias parameters *)
 biasListB222cut = biasListB222init;
@@ -257,13 +250,15 @@ If[Or[includeB321Iv1,includeB321Iv2],
 SetDirectory[indir];
 Print["Loading B321-I"];
 biasListB321Iinit=Union[Flatten[Table[b3sI[[i]]b2s[[j]]b1s[[k]],{i,1,Length[b3sI]},{j,1,Length[b2s]},{k,1,Length[b1s]}]]];
-Tab321freq=Import["tab321freq.wdx"];
-Tab321derivs123=getCoeff[Import["tab321derivsMuChi123.wdx"]];
-Tab321derivs132=getCoeff[Import["tab321derivsMuChi132.wdx"]];
-Tab321derivs213=getCoeff[Import["tab321derivsMuChi213.wdx"]];
-Tab321derivs231=getCoeff[Import["tab321derivsMuChi231.wdx"]];
-Tab321derivs321=getCoeff[Import["tab321derivsMuChi321.wdx"]];
-Tab321derivs312=getCoeff[Import["tab321derivsMuChi312.wdx"]];
+Tab321derivs=Import["tab321derivs-flat.wdx"];
+Tab321freq=Import["tab321freq-flat.wdx"];
+Tab321derivs123=getCoeff[Tab321derivs/.{x->x,y->y,\[Mu]1->\[Mu]1,\[Mu]2->\[Mu]2,\[Mu]3->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab321derivs132=getCoeff[Tab321derivs/.{x->y,y->x,\[Mu]1->\[Mu]1,\[Mu]3->\[Mu]2,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab321derivs213=getCoeff[Tab321derivs/.{x->x/y,y->1/y,\[Mu]1->\[Mu]2,\[Mu]2->\[Mu]1,\[Mu]3->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab321derivs231=getCoeff[Tab321derivs/.{x->1/y,y->x/y,\[Mu]1->\[Mu]2,\[Mu]3->\[Mu]1,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab321derivs321=getCoeff[Tab321derivs/.{x->1/x,y->y/x,\[Mu]2->\[Mu]2,\[Mu]3->\[Mu]1,\[Mu]1->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab321derivs312=getCoeff[Tab321derivs/.{x->y/x,y->1/x,\[Mu]2->\[Mu]1,\[Mu]3->\[Mu]2,\[Mu]1->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Remove[Tab321derivs];
 
 (* Remove any unneeded bias parameters *)
 biasListB321Icut = biasListB321Iinit;
@@ -283,7 +278,6 @@ Tab321derivs321 = DeleteCases[Table[If[biasListB321Icut[[i]]==0,{},Tab321derivs3
 (* B321-II *)
 b3sII={b1,g2,g21,f, f^2,b1 f^2,f^3}; 
 If[includeB321II,
-Print["Loading B321-II"];
 biasListB321II=Union[Flatten[Table[b3sII[[i]]b2s[[j]]b1s[[k]],{i,1,Length[b3sII]},{j,1,Length[b2s]},{k,1,Length[b1s]}]]];
 Print[ToString[StringForm["`` contributions to B321-II",Length[biasListB321II]]]];
 ];
@@ -293,26 +287,29 @@ Print[ToString[StringForm["`` contributions to B321-II",Length[biasListB321II]]]
 (* B411 *)
 b4s={g21x, g211, g22, g31, g21,g3,b3, g2x, g2,b2,b1,f b3, f g2x, f g3, f g21,f b2, f g2, f b1, f,  f^2 b2, f^2 g2, f^2 b1, f^2,f^3 b1, f^3, f^4};
 If[includeB411,
-Print["Loading B411"];
-biasListB411init=Union[Flatten[Table[b4s[[i]]b1s[[j]]b1s[[k]],{i,1,Length[b4s]},{j,1,Length[b1s]},{k,1,Length[b1s]}]]];
 SetDirectory[indir];
-Tab411derivs123=getCoeff[Import["tab411derivsMuChi123.wdx"]];
-Tab411derivs231=getCoeff[Import["tab411derivsMuChi231.wdx"]];
-Tab411derivs132=getCoeff[Import["tab411derivsMuChi132.wdx"]];
-Tab411freq=Import["tab411freq.wdx"];
+biasListB411init=Union[Flatten[Table[b4s[[i]]b1s[[j]]b1s[[k]],{i,1,Length[b4s]},{j,1,Length[b1s]},{k,1,Length[b1s]}]]];
+Tab411derivs=Import["tab411derivs-flat.wdx"];
+Tab411freq=Import["tab411freq-flat.wdx"];
+
+Tab411derivs123=getCoeff[Tab411derivs/.{x->x,y->y,\[Mu]1->\[Mu]1,\[Mu]2->\[Mu]2,\[Mu]3->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab411derivs231=getCoeff[Tab411derivs/.{x->1/y,y->x/y,\[Mu]1->\[Mu]2,\[Mu]3->\[Mu]1,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+Tab411derivs132=getCoeff[Tab411derivs/.{x->y,y->x,\[Mu]1->\[Mu]1,\[Mu]3->\[Mu]2,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
 
 (* Remove any unneeded bias parameters *)
 biasListB411cut = biasListB411init;
-For[i=1,i<=Length[biasListB411init],i++,s=Sum[Abs[Tab411derivs123[[i,j]]]+Abs[Tab411derivs231[[i,j]]]+Abs[Tab411derivs132[[i,j]]],{j,1,Length[Tab411derivs123[[1]]]}];If[s==0,biasListB411cut[[i]]=0;]];
+For[i=1,i<=Length[biasListB411init],i++,s=Sum[Abs[Tab411derivs123[[i,j]]]+Abs[Tab411derivs231[[i,j]]]+Abs[Tab411derivs132[[i,j]]],{j,1,Length[Tab411derivs[[1]]]}];If[s==0,biasListB411cut[[i]]=0;]];
 biasListB411 = DeleteCases[biasListB411cut,0];
 Tab411derivs123 = DeleteCases[Table[If[biasListB411cut[[i]]==0,{},Tab411derivs123[[i,All]],Tab411derivs123[[i,All]]],{i,1,Length[biasListB411init]}],{}];
 Tab411derivs231 = DeleteCases[Table[If[biasListB411cut[[i]]==0,{},Tab411derivs231[[i,All]],Tab411derivs231[[i,All]]],{i,1,Length[biasListB411init]}],{}];
 Tab411derivs132 = DeleteCases[Table[If[biasListB411cut[[i]]==0,{},Tab411derivs132[[i,All]],Tab411derivs132[[i,All]]],{i,1,Length[biasListB411init]}],{}];
 Print[ToString[StringForm["`` contributions to B411",Length[biasListB411]]]];
+
+Remove[Tab411derivs];
 ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Linear Power Spectrum*)
 
 
@@ -324,12 +321,11 @@ Print[ToString[StringForm["`` contributions to B411",Length[biasListB411]]]];
 (* ::Code::Initialization::Plain:: *)
 Print["Loading power spectrum"];
 SetDirectory[pkdir];
-InputTab=Import["ptc_pk_IR.dat"][[5;;All]]; (* This is IR resummed P(k) file *)
+InputTab=Import["ptc_pk_IR.dat"][[5;;All]]; (* This is IR resummed PT challenge P(k) *)
 plindat=Table[{InputTab[[i,1]],-InputTab[[i,3]]/InputTab[[i,1]]^2},{i,1,Length[InputTab]}];
 
 anorm=plindat[[1,2]];
 kb=plindat[[1,1]];
-(* Add extrapolation beyond the input k-range *)
 pextralow=Table[{10^(-10+( i-1) 0.2), anorm (10^(-10+ (i-1) 0.2)/kb)^0.965},{i,1,25}];
 pextrahighk=Table[{18+10^(( i) 0.1), 0.00015((18+10^(( i) 0.1))/(18+10^(( 20) 0.1)))^-3},{i,20,30}];
 plindat2=Join[pextralow,plindat,pextrahighk];
@@ -340,7 +336,7 @@ pcut[k_]= Exp[plin[Log[k]]]Exp[-(k/khigh)^2];
 Plin[k_]=pcut[k];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*UV Limits*)
 
 
@@ -355,13 +351,13 @@ If[includeB222,
 B222UVkernel = 0;
 (* B222/k^2 UV limit [NB: zero here!] *)
 lim1=1/(2\[Pi]^2) NIntegrate[Plin[q]^3,{q,0,Infinity},WorkingPrecision->10,MaxRecursion->1000,PrecisionGoal->5];
-B222UV[x_,y_]=getCoeff[(B222UVkernel lim1)/.{k1->1,k2->y^(1/2),k3->x^(1/2)}/.muBasisTrans//Expand];
+B222UV[x_,y_]=getCoeff[(B222UVkernel lim1)/.{k1->1,k2->y^(1/2),k3->x^(1/2)}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
 ];
 If[Or[includeB321Iv1,includeB321Iv2],
 B321UVkernel = 0;
 (* B321-I/k^2 UV limit [NB: zero here!] *)
 lim2=1/(2\[Pi]^2) NIntegrate[Plin[q]^2,{q,0,Infinity},WorkingPrecision->10,MaxRecursion->1000,PrecisionGoal->5];
-If[B321UVkernel==0,B321UV[x_,y_]=getCoeff[B321UVkernel lim2/.{k1->1,k2->y^(1/2),k3->x^(1/2)}/.muBasisTrans//Expand],Print["Need to add B321 UV symmetries!"];Abort[];];
+If[B321UVkernel==0,B321UV[x_,y_]=getCoeff[B321UVkernel lim2/.{k1->1,k2->y^(1/2),k3->x^(1/2)}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}],Print["Need to add B321 UV symmetries!"];Abort[];];
 ];
 If[includeB321II,
 (* Explicit B321-II form, given P13 *)
@@ -377,16 +373,16 @@ P13ab[n1_]=Sum[Tab13[[i,3]]J2[1,Tab13[[i,1]]+n1,Tab13[[i,2]]],{i,1,Length[Tab13]
 \[Alpha]UV13=1/315 (-61 b1-576 g2+672 g21-3 f (-9+48 f+35 b1 (2+f)) \[Mu]P^2-3 f^2 (46+35 f) \[Mu]P^4) 1/(2 \[Pi]^2) NIntegrate[Plin[q],{q,0,Infinity}];
 ];
 If[includeB411,
-B411UVkernel = Import["b411uv.wdx"];
+B411UVkernel = Import["b411uv-flat.wdx"];
 (* B411/k^2 UV limit *)
 \[Sigma]v=1/(6\[Pi]^2) NIntegrate[Plin[q],{q,0,Infinity},WorkingPrecision->10,MaxRecursion->1000,PrecisionGoal->5];
-B411UV123[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->x,y->y,\[Rho]12->\[Rho]12,\[Rho]13->\[Rho]13,\[Rho]23->\[Rho]23,\[Nu]12->\[Nu]12,\[Nu]13->\[Nu]13,\[Nu]23->\[Nu]23,\[Mu]1->\[Mu]1,\[Mu]2->\[Mu]2,\[Mu]3->\[Mu]3}/.muBasisTrans//Expand];
-B411UV231[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->1/y,y->x/y,\[Rho]12->\[Rho]23,\[Rho]13->\[Rho]12,\[Rho]23->\[Rho]13,\[Nu]12->\[Nu]23,\[Nu]13->\[Nu]12,\[Nu]23->\[Nu]13,\[Mu]1->\[Mu]2,\[Mu]3->\[Mu]1,\[Mu]2->\[Mu]3}/.muBasisTrans//Expand];
-B411UV132[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->y,y->x,\[Rho]12->\[Rho]13,\[Rho]13->\[Rho]12,\[Rho]23->\[Rho]23,\[Nu]12->\[Nu]13,\[Nu]13->\[Nu]12,\[Nu]23->\[Nu]23,\[Mu]1->\[Mu]1,\[Mu]3->\[Mu]2,\[Mu]2->\[Mu]3}/.muBasisTrans//Expand];
+B411UV123[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->x,y->y,\[Mu]1->\[Mu]1,\[Mu]2->\[Mu]2,\[Mu]3->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+B411UV231[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->1/y,y->x/y,\[Mu]1->\[Mu]2,\[Mu]3->\[Mu]1,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
+B411UV132[x_,y_]=getCoeff[(B411UVkernel(3 \[Sigma]v)/.{k1->1,k2->y^(1/2),k3->x^(1/2)})/.{x->y,y->x,\[Mu]1->\[Mu]1,\[Mu]3->\[Mu]2,\[Mu]2->\[Mu]3}/.{\[Mu]2->-\[Mu],\[Mu]3->-\[Mu],\[Mu]1->\[Mu]}];
 ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*FFTLog Functions*)
 
 
@@ -476,7 +472,7 @@ CompilationTarget->"C",CompilationOptions->{"ExpressionOptimization" -> True,"In
 (*Main Computation*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute k, x, y grid*)
 
 
@@ -487,20 +483,16 @@ CompilationTarget->"C",CompilationOptions->{"ExpressionOptimization" -> True,"In
 (* ::Code::Initialization::Plain:: *)
 Print["Computing k, x, y bins"];
 time=AbsoluteTiming[
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values (NB: should be ordered!) *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &][[All,1]]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	]][[1]];
+	xyout=xy1;
+	][[1]];
 Print["Runtime: ",time];
 
 SetDirectory[outdir];
 kcoords=Join[{knPlot},{xyout[[All,1]]},{xyout[[All,2]]}];
-Export[ToString[StringForm["``_k_x_y.wdx",string]],kcoords];
+Export[ToString[StringForm["``-flat_rsd_k_x_y.wdx",string]],kcoords];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute B211 spectra*)
 
 
@@ -508,10 +500,8 @@ Export[ToString[StringForm["``_k_x_y.wdx",string]],kcoords];
 (*Compute the tree-level bispectrum contributions. These are included for reference only: it is much faster to compute them directly in Python!*)
 
 
-computeB211[x1_,y1_]:=Module[{Btree,nu12,rho12},
-nu12=(x1-1-y1)/(2 Sqrt[y1]);
-rho12=Sqrt[1-nu12^2];
-Btree=Table[B211[knPlot[[i]],Sqrt[y1]knPlot[[i]],Sqrt[x1]knPlot[[i]]]/.{\[Nu]12->nu12,\[Rho]12->rho12},{i,1,Length[knPlot]}];
+computeB211[x1_,y1_]:=Module[{Btree},
+Btree=Table[B211[knPlot[[i]],Sqrt[y1]knPlot[[i]],Sqrt[x1]knPlot[[i]]],{i,1,Length[knPlot]}];
 B211plot = Table[Coefficient[Btree[[All]],biasListB211[[j]]]/.{f->0,b1->0,b2->0,g2->0},{j,1,Length[biasListB211]}];
 Transpose[B211plot]
 ];
@@ -527,10 +517,10 @@ Print["Runtime: ",time];
 ];
 
 SetDirectory[outdir];
-If[includeB211,Export[ToString[StringForm["``_b211_m``.wdx",string,muIndex]],B211spec]];
+If[includeB211,Export[ToString[StringForm["``-flat_b211_m``.wdx",string,muIndex]],B211spec]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute B222 spectra*)
 
 
@@ -544,38 +534,26 @@ B222UVderivs={};
 For[i=1,i<=Length[biasListB222],i++,
 biasFunc=Coefficient[B222UV[x,y],biasListB222[[i]]]/.{f->0,b1->0,b2->0,g2->0};
 B222UVderivs=Join[B222UVderivs,{biasFunc}];
-]
+];
 
 (* Function to compute B222 *)
-computeB222[x1vec_,y1_]:=Module[{Bn1n2n3step1,b222,coefTab,coefTabExpan,coefTabSafe,cnc,Nmax,bias,cn,mu3,nu23,nu13,nu12,rho23,rho13,rho12,F12,tab222,b222plot},
+computeB222[x1vec_,y1_]:=Module[{Bn1n2n3step1,b222,coefTab,coefTab1,cnc,Nmax,bias,cn,mu3,tab222,b222plot},
 (* Compute FFTLog coefficients *)
 Nmax=Nmax222;
 bias=bias222;
 cn=CoeffPow[bias,Nmax,kmin,kmax,Plin];
-(* Define angles [as vectors] *)
-nu12=(x-1-y1)/(2 Sqrt[y1]);
-nu13=(y1-1-x)/(2 Sqrt[x]);
-nu23=(1-x-y1)/(2 Sqrt[y1]Sqrt[x]);
-rho12=Sqrt[1-nu12^2];
-rho13=Sqrt[1-nu13^2];
-rho23=Sqrt[1-nu23^2];
-
 (* Compute FFTLog table with relevant angles*)
-tab222=Tab222derivs/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23}; (* NB: simplifying is crucial here! *)
-coefTab=Table[tab222[[j,k]],{j,1,Length[biasListB222]},{k,1,Length[Tab222freq]}];
-(* Artificially remove any false divergences near folded limit *)
-If[Sqrt[y1]+Sqrt[Min[x1vec]]-1<0.1,coefTabExpan=Chop[Normal[Series[tab222/.{rho12^2->\[Epsilon](2-\[Epsilon]),1/x->1/x,x->(-1+\[Epsilon])2Sqrt[y1]+y1+1},{\[Epsilon],0,4}]]]/.{\[Epsilon]^(-3/2)->0,\[Epsilon]^(-5/2)->0,\[Epsilon]^(-7/2)->0}/.{\[Epsilon]->(x-1-y1)/(2 Sqrt[y1])+1}];
-coefTabSafe=Table[If[Sqrt[y1]+Sqrt[x1vec[[i]]]-1<0.1,coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
-
+tab222=Tab222derivs/.{y->y1};
+coefTab=Table[tab222[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB222]},{k,1,Length[Tab222freq]}];
 (* Sum over coefficients *)
-Bn1n2n3step1=ParallelTable[Sum[coefTabSafe[[All,All,i]]JCx[Tab222freq[[i,1]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},Tab222freq[[i,2]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},Tab222freq[[i,3]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},x1vec,y1,eps],{i,1,Length[Tab222freq]}],{i1,1,Nmax/2+1},{i2,1,Nmax+1},{i3,1,Nmax+1}];
+Bn1n2n3step1=ParallelTable[Sum[coefTab[[All,All,i]]JCx[Tab222freq[[i,1]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},Tab222freq[[i,2]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},Tab222freq[[i,3]]/.{\[Nu]1->cn[[i1,2]],\[Nu]2->cn[[i2,2]],\[Nu]3->cn[[i3,2]]},x1vec,y1,eps],{i,1,Length[Tab222freq]}],{i1,1,Nmax/2+1},{i2,1,Nmax+1},{i3,1,Nmax+1}];
 b222=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,i3,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,Nmax+2-i3,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{i3,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB222]}];
 b222plot=ConstantArray[0,{NmaxPlot,Length[x1vec],Length[biasListB222]}];
 For[i=1,i<=Length[b222plot],i++,
 cnc=knPlot[[i]]^(1+cn[[All,2]]) cn[[All,1]];
 For[n=1,n<=Length[x1vec],n++,
 For[j=1,j<=Length[biasListB222],j++,
-b222plot[[i,n,j]]=(Re[((b222[[All,All,All,n,j]].cnc).cnc).cnc+(knPlot[[i]])^2 (B222UVderivs[[j]]/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23})/.{x->x1vec[[n]]}])]]];
+b222plot[[i,n,j]]=(Re[((b222[[All,All,All,n,j]].cnc).cnc).cnc+(knPlot[[i]])^2 B222UVderivs[[j]]/.{x->x1vec[[n]],y->y1}])]]];
 b222plotOut=ConstantArray[0,{Length[b222plot],Length[b222plot[[1]]],Length[biasListB222init]}];
 j=1;
 For[i=1,i<=Length[biasListB222init],i++,If[biasListB222cut[[i]]==0,Continue[],Continue[],b222plotOut[[All,All,i]]=b222plot[[All,All,j]];j+=1]];
@@ -586,21 +564,19 @@ If[includeB222,
 Print["Computing B222 spectra"];
 time=AbsoluteTiming[
 	B222spec={};
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values (NB: should be ordered!) *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &][[All,1]]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	b222=computeB222[xvals,y1vec[[m]]];
-	For[mm=1,mm<=Length[xvals],mm++,B222spec=Join[B222spec,{b222[[All,mm,All]]}]];
-	]][[1]];
+	For[m=1,m<=Length[xyout],m++,
+		(* Define relevant x values (NB: should be ordered!) *)
+		b222=computeB222[{xyout[[m,1]]},xyout[[m,2]]];
+	B222spec=Join[B222spec,{b222[[All,1,All]]}]];
+	][[1]];
 Print["Runtime: ",time];
 ];
+
 SetDirectory[outdir];
-If[includeB222,Export[ToString[StringForm["``_b222_nu``_m``.wdx",string,bias222,muIndex]],B222spec]];
+If[includeB222,Export[ToString[StringForm["``-flat_b222_nu``_m``.wdx",string,bias222,muIndex]],B222spec]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (* Compute B321-I spectra*)
 
 
@@ -616,92 +592,79 @@ biasFunc=Coefficient[B321UV[x,y],biasListB321I[[i]]]/.{f->0,b1->0,b2->0,g2->0,b3
 B321UVderivs=Join[B321UVderivs,{biasFunc}];
 ]
 
+(* Function to compute B321-I *)
 computeB321I[x1vec_,y1_,bias_]:=Module[{Bn1n2n3step1,b321,b321p1,b321p2,b321p3,b321p4,b321p5,b321p6,b321plot,coefTab,coefTabExpan,coefTabSafe,cnc,Nmax,cn,nu23,nu13,nu12,rho12,rho23,rho13,tab321},
 (* Compute FFTlog coefficients *)
 Nmax=Nmax321I;
 cn=CoeffPow[bias,Nmax,kmin,kmax,Plin];
 
-(* Define angles *)
-nu12=(x-1-y1)/(2 Sqrt[y1]);
-nu13=(y1-1-x)/(2 Sqrt[x]);
-nu23=(1-x-y1)/(2 Sqrt[y1]Sqrt[x]);
-rho12=Sqrt[1-nu12^2];
-rho13=Sqrt[1-nu13^2];
-rho23=Sqrt[1-nu23^2];
-
 (* Create output array *)
 b321plot=ConstantArray[0,{NmaxPlot,Length[x1vec],Length[biasListB321I]}];
 
 (* Permutation 1: (x,y)\[Rule](x,y) *)
-coefTab=Tab321derivs123/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs123/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ JCx[eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ JCx[eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p1=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,cnc=knPlot[[i]]^(1.5` +cn[[All,2]]) cn[[All,1]];
 For[n=1,n<=Length[x1vec],n++,
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[knPlot[[i]]]Re[(b321p1[[All,All,n,j]].cnc.cnc+knPlot[[i]]^2 (B321UVderivs[[j]]/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[knPlot[[i]]]Re[(b321p1[[All,All,n,j]].cnc.cnc+knPlot[[i]]^2B321UVderivs[[j]]/.{x->x1vec[[n]],y->y1})]]]];
 
 (* Permutation 2: (x,y)\[Rule](y,x) *)
 (* Note that we have already imposed permutations in the derivatives here!*)
-coefTab=Tab321derivs132/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs132/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ JCx[eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ JCx[eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p2=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,cnc=knPlot[[i]]^(1.5` +cn[[All,2]]) cn[[All,1]];
 For[n=1,n<=Length[x1vec],n++,
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[knPlot[[i]]]Re[(b321p2[[All,All,n,j]].cnc.cnc+knPlot[[i]]^2(B321UVderivs[[j]]/.{x->y1,y->x,\[Nu]12->nu13,\[Nu]13->nu12,\[Nu]23->nu23,\[Rho]12->rho13,\[Rho]13->rho12,\[Rho]23->rho23})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[knPlot[[i]]]Re[(b321p2[[All,All,n,j]].cnc.cnc+knPlot[[i]]^2B321UVderivs[[j]]/.{x->y1,y->x1vec[[n]]})]]]];
 
 (* Permutation 3: (x,y)\[Rule](x/y,1/y) *)
-coefTab=Tab321derivs213/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs213/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ 
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ 
 \*SuperscriptBox[\(y1\), \(\(-1.5`\) + \((Tab321freq[\([i, 1]\)] + Tab321freq[\([i, 2]\)] + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]})\)\)] JCx[eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p3=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,cnc=(Sqrt[y1] knPlot[[i]])^(1.5` +cn[[All,2]]) cn[[All,1]];
 For[n=1,n<=Length[x1vec],n++,
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[y1] knPlot[[i]]] Re[(b321p3[[All,All,n,j]].cnc.cnc+(Sqrt[y1] knPlot[[i]])^2 (B321UVderivs[[j]]/.{x->1/y1,y->x/y1,\[Nu]12->nu12,\[Nu]13->nu23,\[Nu]23->nu13,\[Rho]12->rho12,\[Rho]13->rho23,\[Rho]23->rho13})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[y1] knPlot[[i]]] Re[(b321p3[[All,All,n,j]].cnc.cnc+(Sqrt[y1] knPlot[[i]])^2 B321UVderivs[[j]]/.{x->1/y1,y->x1vec[[n]]/y1})]]]];
 
 (* Permutation 4: (x,y)\[Rule](1/y,x/y) *)
-coefTab=Tab321derivs231/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs231/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ 
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ 
 \*SuperscriptBox[\(y1\), \(\(-1.5`\) + \((Tab321freq[\([i, 1]\)] + Tab321freq[\([i, 2]\)] + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]})\)\)]\ JCx[eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p4=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,cnc=(Sqrt[y1] knPlot[[i]])^(1.5` +cn[[All,2]]) cn[[All,1]];
 For[n=1,n<=Length[x1vec],n++,
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[y1] knPlot[[i]]] Re[(b321p4[[All,All,n,j]].cnc.cnc+(Sqrt[y1] knPlot[[i]])^2 (B321UVderivs[[j]]/.{x->1/y1,y->x/y1,\[Nu]12->nu23,\[Nu]13->nu12,\[Nu]23->nu13,\[Rho]12->rho23,\[Rho]13->rho12,\[Rho]23->rho13})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[y1] knPlot[[i]]] Re[(b321p4[[All,All,n,j]].cnc.cnc+(Sqrt[y1] knPlot[[i]])^2 B321UVderivs[[j]]/.{x->1/y1,y->x1vec[[n]]/y1})]]]];
 
 (* Permutation 5: (x,y)\[Rule](1/x,y/x) *)
-coefTab=Tab321derivs321/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs321/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ 
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ 
 \*SuperscriptBox[\(x1vec\), \(\(-1.5`\) + \((Tab321freq[\([i, 1]\)] + Tab321freq[\([i, 2]\)] + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]})\)\)]\ JCx[eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p5=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,
 For[n=1,n<=Length[x1vec],n++,cnc=(Sqrt[x1vec[[n]]] knPlot[[i]])^(1.5` +cn[[All,2]]) cn[[All,1]];
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]] knPlot[[i]]] Re[(b321p5[[All,All,n,j]].cnc.cnc+(Sqrt[x1vec[[n]]] knPlot[[i]])^2 (B321UVderivs[[j]]/.{x->1/x,y->y1/x,\[Nu]12->nu23,\[Nu]13->nu13,\[Nu]23->nu12,\[Rho]12->rho23,\[Rho]13->rho13,\[Rho]23->rho12})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]] knPlot[[i]]] Re[(b321p5[[All,All,n,j]].cnc.cnc+(Sqrt[x1vec[[n]]] knPlot[[i]])^2 B321UVderivs[[j]]/.{x->1/x1vec[[n]],y->y1/x1vec[[n]]})]]]];
 
 (* Permutation 6: (x,y)\[Rule](y/x,1/x) *)
-coefTab=Tab321derivs312/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
+coefTab2=Tab321derivs312/.{y->y1};
+coefTab=Table[coefTab2[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB321I]},{k,1,Length[Tab321freq]}];
 Bn1n2n3step1=ParallelTable[\!\(
-\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTabSafe[\([All, All, i]\)]\ 
+\*UnderoverscriptBox[\(\[Sum]\), \(i = 1\), \(Length[Tab321freq]\)]\(coefTab[\([All, All, i]\)]\ 
 \*SuperscriptBox[\(x1vec\), \(\(-1.5`\) + \((Tab321freq[\([i, 1]\)] + Tab321freq[\([i, 2]\)] + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]})\)\)]\ JCx[eps + Tab321freq[\([i, 3]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 1]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, eps + Tab321freq[\([i, 2]\)] /. {\[Nu]1 -> cn[\([i1, 2]\)], \[Nu]2 -> cn[\([i2, 2]\)]}, x1vec, y1, eps]\)\),{i1,1,Nmax/2+1},{i2,1,Nmax+1}];
 b321p6=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,i2,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,Nmax+2-i2,n,j]]]],{i1,1,Nmax+1},{i2,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB321I]}];
 For[i=1,i<=Length[b321plot],i++,
 For[n=1,n<=Length[x1vec],n++,cnc=(Sqrt[x1vec[[n]]] knPlot[[i]])^(1.5` +cn[[All,2]]) cn[[All,1]];
-For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]] knPlot[[i]]] Re[(b321p6[[All,All,n,j]].cnc.cnc+(Sqrt[x1vec[[n]]] knPlot[[i]])^2 (B321UVderivs[[j]]/.{x->y1/x,y->1/x,\[Nu]12->nu13,\[Nu]13->nu23,\[Nu]23->nu12,\[Rho]12->rho13,\[Rho]13->rho23,\[Rho]23->rho12})/.{x->x1vec[[n]]})]]]];
+For[j=1,j<=Length[biasListB321I],j++,b321plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]] knPlot[[i]]] Re[(b321p6[[All,All,n,j]].cnc.cnc+(Sqrt[x1vec[[n]]] knPlot[[i]])^2 B321UVderivs[[j]]/.{x->y1/x1vec[[n]],y->1/x1vec[[n]]})]]]];
 
 b321plotOut=ConstantArray[0,{Length[b321plot],Length[b321plot[[1]]],Length[biasListB321Iinit]}];
 j=1;
@@ -715,40 +678,32 @@ If[includeB321Iv1,
 Print["Computing B321-I spectra (version 1)"];
 time=AbsoluteTiming[
 	B321Ispec={};
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values (NB: should be ordered!) *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &][[All,1]]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	b321I=computeB321I[xvals,y1vec[[m]],bias321Iv1];
-	For[mm=1,mm<=Length[xvals],mm++,B321Ispec=Join[B321Ispec,{b321I[[All,mm,All]]}]];
-	]][[1]];
+	For[m=1,m<=Length[xyout],m++,
+	b321I=computeB321I[{xyout[[m,1]]},xyout[[m,2]],bias321Iv1];
+	B321Ispec=Join[B321Ispec,{b321I[[All,1,All]]}]]
+	][[1]];
 Print["Runtime: ",time];
 
 SetDirectory[outdir];
-Export[ToString[StringForm["``_b321I_nu``_m``.wdx",string,bias321Iv1,muIndex]],B321Ispec];
+Export[ToString[StringForm["``-flat_b321I_nu``_m``.wdx",string,bias321Iv1,muIndex]],B321Ispec];
 ];
 
 If[includeB321Iv2,
 Print["Computing B321-I spectra (version 2)"];
 time=AbsoluteTiming[
 	B321Ispec={};
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values (NB: should be ordered!) *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &][[All,1]]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	b321I=computeB321I[xvals,y1vec[[m]],bias321Iv2];
-	For[mm=1,mm<=Length[xvals],mm++,B321Ispec=Join[B321Ispec,{b321I[[All,mm,All]]}]];
-	]][[1]];
+	For[m=1,m<=Length[xyout],m++,
+	b321I=computeB321I[{xyout[[m,1]]},xyout[[m,2]],bias321Iv2];
+	B321Ispec=Join[B321Ispec,{b321I[[All,1,All]]}]]
+	][[1]];
 Print["Runtime: ",time];
 
 SetDirectory[outdir];
-Export[ToString[StringForm["``_b321I_nu``_m``.wdx",string,bias321Iv2,muIndex]],B321Ispec];
+Export[ToString[StringForm["``-flat_b321I_nu``_m``.wdx",string,bias321Iv2,muIndex]],B321Ispec];
 ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute B321-II spectra*)
 
 
@@ -771,17 +726,12 @@ p13=ParallelTable[{kn[[i]],kn[[i]]^3 PPlin[kn[[i]]]ComplexExpand[Re[p13matrix.(k
 p13s=Join[p13s,{p13}]];
 CoeffSafe[x_,fac_,pow_]:=If[pow==0,x/. {fac->0},Coefficient[x,fac^pow]];
 P13loc[kT_,\[Mu]T_]:=Sum[P13biases[[i]]Sum[\[Mu]T^n Interpolation[Transpose[Join[{p13s[[i]][[All,1]],CoeffSafe[p13s[[i]][[All,2]],\[Mu]P,n]}]],"ExtrapolationHandler" -> {(0.0 &), "WarningMessage" -> False}][kT],{n,0,12}],{i,1,Length[P13biases]}];
-b321IIxy=getCoeff[((B321II[k,Sqrt[y]k,Sqrt[x]k]/.{P13->P13loc})/.muBasisTrans)]/.{PPlin->Plin};
-computeB321II[x1vec_,y1_]:=Module[{Bn1n2n3step1,b321IIplot,b321IItmp,Nmax,bias,cn,nu12,nu13,nu23,rho12,rho13,rho23},
-(* Define angles *)
-nu12=(x1vec-1-y1)/(2 Sqrt[y1]);
-nu13=(y1-1-x1vec)/(2 Sqrt[x1vec]);
-nu23=(1-x1vec-y1)/(2 Sqrt[y1]Sqrt[x1vec]);
-rho12=Sqrt[1-nu12^2];
-rho13=Sqrt[1-nu13^2];
-rho23=Sqrt[1-nu23^2];
+b321IIxy=getCoeff[((B321II[k,Sqrt[y]k,Sqrt[x]k]/.{P13->P13loc}))/.{\[Mu]1->\[Mu],\[Mu]2->-\[Mu],\[Mu]3->-\[Mu]}]/.{PPlin->Plin};
+
+(* Function to compute B321-II *)
+computeB321II[x1vec_,y1_]:=Module[{Bn1n2n3step1,P13loc,p13,p13s,P13biases,b321IIplot,cnc,Nmax,bias,cn},
 (* Compute output [NB: this is already symmetrized] *)
-b321IIplot=ParallelTable[Coefficient[b321IIxy/.{k->knPlot[[i]],x->x1vec[[j]],y->y1,\[Nu]12->nu12[[j]],\[Nu]13->nu13[[j]],\[Nu]23->nu23[[j]],\[Rho]12->rho12[[j]],\[Rho]13->rho13[[j]],\[Rho]23->rho23[[j]]},biasListB321II[[n]]]/.{b1->0,b2->0,g2->0,g21->0,f->0},{i,1,Length[knPlot]},{j,1,Length[x1vec]},{n,1,Length[biasListB321II]}];
+b321IIplot=ParallelTable[Coefficient[b321IIxy/.{k->knPlot[[i]],y->Sqrt[y1],x->Sqrt[x1vec[[j]]]},biasListB321II[[n]]]/.{b1->0,b2->0,g2->0,g21->0,f->0},{i,1,Length[knPlot]},{j,1,Length[x1vec]},{n,1,Length[biasListB321II]}];
 Transpose[b321IIplot]];
 
 
@@ -790,22 +740,18 @@ If[includeB321II,
 Print["Computing B321-II spectra"];
 time=AbsoluteTiming[
 	B321IIspec={};
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &]][[All,1]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	b321II=computeB321II[xvals,y1vec[[m]]];
-	For[mm=1,mm<=Length[xvals],mm++,B321IIspec=Join[B321IIspec,{b321II[[mm,All,All]]}]]]
+	For[m=1,m<=Length[xyout],m++,
+	b321II=computeB321II[{xyout[[m,1]]},xyout[[m,2]]];
+	B321IIspec=Join[B321IIspec,{b321II[[1,All,All]]}]]
 	][[1]];
 Print["Runtime: ",time];
 ];
 
 SetDirectory[outdir];
-If[includeB321II,Export[ToString[StringForm["``_b321II_nu``_m``.wdx",string,bias321II,muIndex]],B321IIspec]];
+If[includeB321II,Export[ToString[StringForm["``-flat_b321II_nu``_m``.wdx",string,bias321II,muIndex]],B321IIspec]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute B411 spectra*)
 
 
@@ -814,60 +760,50 @@ If[includeB321II,Export[ToString[StringForm["``_b321II_nu``_m``.wdx",string,bias
 
 
 computeB411[x1vec_,y1_]:=
-Module[{Bn1n2n3step1,tab411,b411,b411p1,b411p2,b411p3,b411plot,cnc,Nmax,bias,cn,nu23,nu13,nu12,rho12,rho13,rho23,biasZeros, coefTab,coefTabExpan,coefTabSafe},
+Module[{Bn1n2n3step1,tab411,b411,b411p1,b411p2,b411p3,b411plot,cnc,Nmax,bias,cn,biasZeros, coefTab},
 (* Compute FFTlog coefficients *)
 Nmax=Nmax411;
 bias=bias411;
 cn=CoeffPow[bias,Nmax,kmin,kmax,Plin];
 
-(* Define angles *)
-nu12=(x-1-y1)/(2 Sqrt[y1]);
-nu13=(y1-1-x)/(2 Sqrt[x]);
-nu23=(1-x-y1)/(2 Sqrt[y1]Sqrt[x]);
-rho12=Sqrt[1-nu12^2];
-rho13=Sqrt[1-nu13^2];
-rho23=Sqrt[1-nu23^2];
 biasZeros={g21x->0,g211->0,g22->0,g31->0,g21->0,g3->0,b3->0,g2x->0,g2->0,b2->0,b1->0,f->0};
 
 (* Define output array *)
 b411plot=ConstantArray[0,{NmaxPlot,Length[x1vec],Length[biasListB411]}];
 
 (* Permutation 1: (x,y)\[Rule](x,y) *)
-coefTab=Tab411derivs123/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
-Bn1n2n3step1=ParallelTable[Sum[coefTabSafe[[All,All,i]]JCx[eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
+tab411=Tab411derivs123/.{y->y1};
+coefTab=Table[tab411[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB411]},{k,1,Length[Tab411freq]}];
+Bn1n2n3step1=ParallelTable[Sum[coefTab[[All,All,i]]JCx[eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
 b411p1=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,n,j]]]],{i1,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB411]}];
 For[i=1,i<=Length[b411plot],i++,
 For[n=1,n<=Length[x1vec],n++,
 cnc=knPlot[[i]]^(3+cn[[All,2]]) cn[[All,1]];
 For[j=1,j<=Length[biasListB411],j++,
-b411plot[[i,n,j]]+=Plin[knPlot[[i]]]Plin[Sqrt[y1]knPlot[[i]]](Re[b411p1[[All,n,j]].cnc]+Coefficient[knPlot[[i]]^2(B411UV123[x1vec[[n]],y1]/.{\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23})/.{x->x1vec[[n]]},biasListB411[[j]]]/.biasZeros)]]];
+b411plot[[i,n,j]]+=Plin[knPlot[[i]]]Plin[Sqrt[y1]knPlot[[i]]](Re[b411p1[[All,n,j]].cnc]+Coefficient[knPlot[[i]]^2B411UV123[x1vec[[n]],y1],biasListB411[[j]]]/.biasZeros)]]];
 
 (* Permutation 2: (x,y)\[Rule](1/y,x/y) *)
 (* Note that permutations have already been counted! *)
-coefTab=Tab411derivs231/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
-Bn1n2n3step1=Table[Sum[coefTabSafe[[All,All,i]]y1^(-1.5+(Tab411freq[[i,1]]+Tab411freq[[i,2]]+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]})) JCx[eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
+tab411=Tab411derivs231/.{y->y1};
+coefTab=Table[tab411[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB411]},{k,1,Length[Tab411freq]}];
+Bn1n2n3step1=Table[Sum[coefTab[[All,All,i]]y1^(-1.5+(Tab411freq[[i,1]]+Tab411freq[[i,2]]+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]})) JCx[eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
 b411p2=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,n,j]]]],{i1,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB411]}];
 For[i=1,i<=Length[b411plot],i++,
 For[n=1,n<=Length[x1vec],n++,
 cnc=(Sqrt[y1]knPlot[[i]])^(3+cn[[All,2]]) cn[[All,1]];
 For[j=1,j<=Length[biasListB411],j++,
-b411plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]]knPlot[[i]]]Plin[Sqrt[y1]knPlot[[i]]](Re[b411p2[[All,n,j]].cnc]+Coefficient[(Sqrt[y1]knPlot[[i]])^2 (B411UV231[x1vec[[n]],y1]/.{\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23})/.{x->x1vec[[n]]},biasListB411[[j]]]/.biasZeros)]]];
+b411plot[[i,n,j]]+=Plin[Sqrt[x1vec[[n]]]knPlot[[i]]]Plin[Sqrt[y1]knPlot[[i]]](Re[b411p2[[All,n,j]].cnc]+Coefficient[(Sqrt[y1]knPlot[[i]])^2 B411UV231[x1vec[[n]],y1],biasListB411[[j]]]/.biasZeros)]]];
 
 (* Permutation 3: (x,y)\[Rule](y,x) *)
-coefTab=Tab411derivs132/.{y->y1,\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23};
-If[y1==1,coefTabExpan=Chop[Normal[Series[coefTab,{x,0,6}]]]];
-coefTabSafe=Table[If[(y1==1)&&(x1vec[[i]]<0.1),coefTabExpan/.{x->x1vec[[i]]},coefTab/.{x->x1vec[[i]]}],{i,1,Length[x1vec]}];
-Bn1n2n3step1=Table[Sum[coefTabSafe[[All,All,i]]JCx[eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
+tab411=Tab411derivs132/.{y->y1};
+coefTab=Table[tab411[[j,k]]/.{x->x1vec[[i]]},{i,1,Length[x1vec]},{j,1,Length[biasListB411]},{k,1,Length[Tab411freq]}];
+Bn1n2n3step1=Table[Sum[coefTab[[All,All,i]]JCx[eps+Tab411freq[[i,2]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,1]]/.{\[Nu]->cn[[i1,2]]},eps+Tab411freq[[i,3]]/.{\[Nu]->cn[[i1,2]]},x1vec,y1,eps],{i,1,Length[Tab411freq]}],{i1,1,Nmax/2+1}];
 b411p3=Table[If[i1<=Nmax/2+1,Bn1n2n3step1[[i1,n,j]],Conjugate[Bn1n2n3step1[[Nmax+2-i1,n,j]]]],{i1,1,Nmax+1},{n,1,Length[x1vec]},{j,1,Length[biasListB411]}];
 For[i=1,i<=Length[b411plot],i++,
 For[n=1,n<=Length[x1vec],n++,
 cnc=knPlot[[i]]^(3+cn[[All,2]]) cn[[All,1]];
 For[j=1,j<=Length[biasListB411],j++,
-b411plot[[i,n,j]]+=Plin[knPlot[[i]]]Plin[Sqrt[x1vec[[n]]]knPlot[[i]]](Re[b411p3[[All,n,j]].cnc]+Coefficient[knPlot[[i]]^2 (B411UV132[x1vec[[n]],y1]/.{\[Nu]12->nu12,\[Nu]13->nu13,\[Nu]23->nu23,\[Rho]12->rho12,\[Rho]13->rho13,\[Rho]23->rho23})/.{x->x1vec[[n]]},biasListB411[[j]]]/.biasZeros)]]];
+b411plot[[i,n,j]]+=Plin[knPlot[[i]]]Plin[Sqrt[x1vec[[n]]]knPlot[[i]]](Re[b411p3[[All,n,j]].cnc]+Coefficient[knPlot[[i]]^2 B411UV132[x1vec[[n]],y1],biasListB411[[j]]]/.biasZeros)]]];
 
 b411plotOut=ConstantArray[0,{Length[b411plot],Length[b411plot[[1]]],Length[biasListB411init]}];
 j=1;
@@ -881,15 +817,15 @@ If[includeB411,
 Print["Computing B411 spectra"];
 time=AbsoluteTiming[
 	B411spec={};
-	xyout={};
-	For[m=1,m<=Length[y1vec],m++,
-	(* Define relevant x values *)
-	xvals=Sort[Select[xy1, Abs[#[[2]]-y1vec[[m]]]<=10^-6 &]][[All,1]];
-	b411=computeB411[xvals,y1vec[[m]]];
-	xyout=Join[xyout,Table[{xvals[[ii]],y1vec[[m]]},{ii,1,Length[xvals]}]];
-	For[mm=1,mm<=Length[xvals],mm++,B411spec=Join[B411spec,{b411[[All,mm,All]]}]]]
+	For[m=1,m<=Length[xyout],m++,
+	b411=computeB411[{xyout[[m,1]]},xyout[[m,2]]];
+	B411spec=Join[B411spec,{b411[[All,1,All]]}]]
 	][[1]];
 Print["Runtime: ",time];
 ];
+
 SetDirectory[outdir];
-If[includeB411,Export[ToString[StringForm["``_b411_nu``_m``.wdx",string,bias411,muIndex]],B411spec]];
+If[includeB411,Export[ToString[StringForm["``_b411-flat_nu``_m``.wdx",string,bias411,muIndex]],B411spec]];
+
+
+
