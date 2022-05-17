@@ -143,6 +143,3 @@ Print["Exporting total full shape to ",fullfile];
 Export[fullfile,{b211s,b222s,b321Is,b321IIs,b411s,kk,xx,yy},{"Datasets",{"211","222","321I","321II","411","k","x","y"}}]
 
 Print["Finished!"];
-
-
-
