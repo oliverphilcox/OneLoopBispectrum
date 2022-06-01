@@ -6,7 +6,7 @@ Computation of the one-loop bispectrum of galaxies in redshift space, using Math
 4. [Bispectrum Interpolation.ipynb](Bispectrum%20Interpolation.ipynb): Interpolation and extraction of the one-loop bispectrum using Python. This demonstrates the practical usage of the one-loop bispectrum, including full radial and angular bin-integration, and Alcock-Paczynski distortions.
 Steps 1-3 are performed for both flattened (k1 = k2 + k3) and full bispectrum shapes, to allow for efficient and numerically stable interpolation. Note that step 1 only needs to be run if the bispectrum kernels themselves are being modified, else the default kernels provided can be used.
 
-The computed spectra can be interfaced with the tree-level bispectrum likelihoods found [here](https://github.com/oliverphilcox/full_shape_likelihoods). A necessary input to stage (2) is the IR-resummed power spectrum in the [```pk```](pk/) directory; this can be computed using [CLASS-PT](https://github.com/michalychforever/CLASS-PT), and we provide a sample spectrum.
+The computed spectra can be interfaced with the tree-level bispectrum likelihoods found [here](https://github.com/oliverphilcox/full_shape_likelihoods). A necessary input to stage (2) is the IR-resummed power spectrum in the [```pk```](pk/) directory; this can be computed using [CLASS-PT](https://github.com/michalychforever/CLASS-PT), and we provide a sample spectrum. High-resolution bispectrum templates (the output of step 3) computed using the PT Challenge best-fit power spectrum are availble [here](https://drive.google.com/drive/folders/1SVbW8oaMYxpCuLLlnd1dIcrg0vfp-wi_?usp=sharing), and were used in the Philcox+22 paper.
 
 ### Authors
 - [Oliver Philcox](mailto:ohep2@cantab.ac.uk) (Princeton / IAS) 
