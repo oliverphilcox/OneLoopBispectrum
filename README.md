@@ -8,7 +8,7 @@ Steps 1-3 are performed for both flattened (k1 = k2 + k3) and full bispectrum sh
 
 A necessary input to stage (2) is the IR-resummed power spectrum in the [```pk```](pk/) directory; this can be computed using [CLASS-PT](https://github.com/michalychforever/CLASS-PT), and we provide a sample spectrum. High-resolution bispectrum templates (the output of step 3) computed using the PT Challenge best-fit power spectrum can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1SVbW8oaMYxpCuLLlnd1dIcrg0vfp-wi_?usp=sharing), and are those used in the [Philcox+22](https://arxiv.org/abs/2206.02800) paper.
 
-In the future, the computed spectra will be able to be interfaced with the tree-level bispectrum likelihoods found [here](https://github.com/oliverphilcox/full_shape_likelihoods). 
+The computed spectra can be interfaced with the power spectrum and bispectrum likelihoods found [here](https://github.com/oliverphilcox/full_shape_likelihoods). 
 
 ### Authors
 - [Oliver Philcox](mailto:ohep2@cantab.ac.uk) (Princeton / IAS) 
