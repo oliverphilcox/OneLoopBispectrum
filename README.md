@@ -1,5 +1,9 @@
 # One Loop Galaxy Bispectrum
-Computation of the one-loop bispectrum of galaxies in redshift space, using Mathematica. This is described in [Philcox+22](https://arxiv.org/abs/2206.02800). The code contains a number of components:
+Computation of the one-loop bispectrum of galaxies in redshift space, using Mathematica. This is described in [Philcox+22](https://arxiv.org/abs/2206.02800). 
+
+#### NOTE: This code is now depracated. It has been replaced by new code derived for https://arxiv.org/abs/2507.22110, which implements the COBRA factorization scheme and fixes a number of bugs. Please contact Oliver if you're interested in using the new code.
+
+The code contains a number of components:
 1. [Kernels.nb](Kernels.nb) \& [KernelsFlat.nb](KernelsFlat.nb): Computation and simplification of the bispectrum kernels using Mathematica [cosmology-independent]. These are saved in the [```kernels```](kernels/) directory.
 2. [Spectra.wls](Spectra.wls) \& [SpectraFlat.wls](SpectraFlat.wls): Computation of the full and flattened bispectrum templates, given the pre-computed integration kernels. These scripts compute the templates for all bias parameters and a single angular component. They are designed to be run on a HPC cluster using Mathematica. We provide a sample [SLURM submission script](ComputeSpectra.slurm) for computing all templates.
 3. [Output.wls](Output.wls): Read-in and combination of the bispectrum templates using Mathematica. These are saved as two HDF5 files.
